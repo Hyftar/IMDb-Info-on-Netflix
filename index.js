@@ -10,9 +10,50 @@
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
 
+function storageAvailable(type) {
+  let storage;
+  try {
+    storage = window[type];
+    const x = '__storage_test__';
+    storage.setItem(x, x);
+    storage.removeItem(x);
+    return true;
+  }
+  catch (e) {
+    return e instanceof DOMException && (
+      // everything except Firefox
+      e.code === 22 ||
+      // Firefox
+      e.code === 1014 ||
+      // test name field too, because code might not be present
+      // everything except Firefox
+      e.name === 'QuotaExceededError' ||
+      // Firefox
+      e.name === 'NS_ERROR_DOM_QUOTA_REACHED') &&
+      // acknowledge QuotaExceededError only if there's something already stored
+      (storage && storage.length !== 0);
+  }
+}
+
 (function () {
-  window.titlesIdCache = {}
-  window.titlesRatingCache = {}
+  Storage.prototype.setObject = function(key, value) {
+    this.setItem(key, JSON.stringify(value));
+  }
+
+  Storage.prototype.getObject = function(key) {
+    var value = this.getItem(key);
+
+    if (value === null) {
+      return {}
+    }
+
+    return JSON.parse(value);
+  }
+
+  const useLocalStorage = storageAvailable('localStorage');
+
+  window.titlesIdCache = useLocalStorage ? localStorage.getObject('TitlesIdCache') : {}
+  window.titlesRatingCache = useLocalStorage ? localStorage.getObject('TitlesRatingCache') : {}
 
   $('head')
     .append(
@@ -141,6 +182,10 @@
   async function getImdbInfoFromTitle(title) {
     const imdbId = await getImdbIdFromTitle(title);
 
+    if (imdbId === undefined) {
+      return;
+    }
+
     return getImdbInfoFromId(imdbId);
   }
 
@@ -159,6 +204,10 @@
           synchronous: false,
           url: 'https://www.imdb.com/find?s=tt&q=' + encodedUrl,
           onload: (resp) => {
+            if (resp.status !== 200) {
+              reject(`Error retrieving the IMDb id at url : '${url}'`)
+            }
+
             const doc = document.implementation.createHTMLDocument().documentElement;
             doc.innerHTML = resp.responseText;
 
@@ -168,11 +217,12 @@
 
             const id = link?.href.match(/title\/(tt\d+)/)[1];
 
-            if (id === undefined || id === null) {
+            if (id === undefined) {
               return reject(`Error getting IMDb id for ${title}`);
             }
 
             window.titlesIdCache[title] = id;
+            localStorage.setObject('TitlesIdCache', window.titlesIdCache)
 
             return resolve(id);
           }
@@ -182,7 +232,9 @@
   }
 
   function getImdbInfoFromId(id) {
-    if (window.titlesRatingCache[id] !== undefined) {
+    const previousImdbInfo = window.titlesRatingCache[id];
+    if (previousImdbInfo !== undefined
+        && isIMDbInfoFresh(previousImdbInfo)) {
       return Promise.resolve(window.titlesRatingCache[id]);
     }
 
@@ -193,10 +245,19 @@
         synchronous: false,
         url: `https://www.imdb.com/title/${id}/`,
         onload: (resp) => {
+          if (resp.status !== 200) {
+            return reject(`Error retrieving the IMDb rating at url : '${url}'`);
+          }
+
           const doc = document.implementation.createHTMLDocument().documentElement;
           doc.innerHTML = resp.responseText;
 
-          const jsonData = JSON.parse(doc.querySelector('script[type="application/ld+json"]').textContent);
+          const jsonDataElement = doc.querySelector('script[type="application/ld+json"]');
+          if (jsonDataElement === null) {
+            return reject(`The JSON data at url '${url}' was not found`);
+          }
+
+          const jsonData = JSON.parse(jsonDataElement.textContent);
           const data = {
             id,
 
@@ -209,12 +270,11 @@
 
             dateFetched: new Date()
           };
-          if (data && data.id && data.title) {
-            window.titlesRatingCache[id] = data;
-            resolve(data);
-          } else {
-            reject('Error getting IMDb data for id ' + id);
-          }
+
+          window.titlesRatingCache[id] = data;
+          localStorage.setObject('TitlesRatingCache', titlesRatingCache);
+
+          return resolve(data);
         }
       });
     });
@@ -238,5 +298,28 @@
     }
 
     return "#2bff00"
+  }
+
+  function isIMDbInfoFresh(imdbInfo) {
+    const daysSinceRelease = daysSince(imdbInfo.datePublished);
+    const daysSinceFetched = daysSince(imdbInfo.dateFetched);
+
+    if (daysSinceRelease < 120
+        && daysSinceFetched > 2) {
+      return false;
+    }
+
+    if (daysSinceFetched > 21) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function daysSince(date) {
+    const now = new Date()
+    const publishDate = new Date(date)
+
+    return Math.floor((now.getTime()-publishDate.getTime())/(24*3600*1000))
   }
 })();
