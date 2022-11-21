@@ -4,6 +4,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.3
 // @author       Hyftar
+// @homepageURL  https://github.com/Hyftar/IMDb-Info-on-Netflix
 // @match        https://www.netflix.com/browse
 // @match        https://www.netflix.com/title/*
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js
