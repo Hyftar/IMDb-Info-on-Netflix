@@ -1,8 +1,8 @@
 # IMDb-Info-on-Netflix
 A Tampermonkey script to display the IMDb info of Netflix movies and series
 
-To see the the rating for a movie or series, simply over the series
-and open the preview, the script will automatically find the title
+To see the the rating for a movie or series, simply hover over the title
+to open the preview, the script will automatically find the title
 and the rating on IMDb. Once a rating has been obtained, it is
 stored in the local storage to avoid making that request again
 and thus making it faster to see the rating later on.
