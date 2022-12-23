@@ -9,6 +9,7 @@
 // @match        https://www.netflix.com/title/*
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js
 // @grant        GM_xmlhttpRequest
+// @license      GPLv3
 // ==/UserScript==
 
 function storageAvailable(type) {
