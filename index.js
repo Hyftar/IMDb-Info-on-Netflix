@@ -2,7 +2,7 @@
 // @name         IMDb Info On Netflix
 // @description  Detailed IMDB info to Netflix titles
 // @namespace    http://tampermonkey.net/
-// @version      1.3
+// @version      1.4.1
 // @author       Hyftar
 // @homepageURL  https://github.com/Hyftar/IMDb-Info-on-Netflix
 // @match        https://www.netflix.com/browse
