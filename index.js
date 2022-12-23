@@ -1,8 +1,9 @@
 // ==UserScript==
 // @name         IMDb Info On Netflix
+// @license      GPLv3
 // @description  Detailed IMDB info to Netflix titles
 // @namespace    http://tampermonkey.net/
-// @version      1.4.1
+// @version      1.4.2
 // @author       Hyftar
 // @homepageURL  https://github.com/Hyftar/IMDb-Info-on-Netflix
 // @match        https://www.netflix.com/browse
@@ -198,13 +199,16 @@ function storageAvailable(type) {
 
     const encodedUrl = encodeURIComponent(title)
 
+    const url = `https://www.imdb.com/find?s=tt&q=${encodedUrl}`
+
     return new Promise(
       function (resolve, reject) {
         GM_xmlhttpRequest({
+          url,
+
           method: 'GET',
           responseType: 'document',
           synchronous: false,
-          url: 'https://www.imdb.com/find?s=tt&q=' + encodedUrl,
           onload: (resp) => {
             if (resp.status !== 200) {
               reject(`Error retrieving the IMDb id at url : '${url}'`)
@@ -214,10 +218,8 @@ function storageAvailable(type) {
             doc.innerHTML = resp.responseText;
 
             const link =
-              Array.from(
-                doc.querySelectorAll('.find-result-item:first-child a'))
-                  .find((el) => !el.parentNode.textContent.trim().match(/\((?:TV Episode|Short|Video Game|Video)\)/)
-              );
+              Array.from(doc.querySelectorAll('.find-result-item:first-child a'))
+                .find((el) => !el.parentNode.textContent.trim().match(/\((?:TV Episode|Short|Video Game|Video)\)/));
 
             const id = link?.href.match(/title\/(tt\d+)/)[1];
 
@@ -242,12 +244,15 @@ function storageAvailable(type) {
       return Promise.resolve(window.titlesRatingCache[id]);
     }
 
+    const url = `https://www.imdb.com/title/${id}/`;
+
     return new Promise(function (resolve, reject) {
       GM_xmlhttpRequest({
+        url,
+
         method: 'GET',
         responseType: 'document',
         synchronous: false,
-        url: `https://www.imdb.com/title/${id}/`,
         onload: (resp) => {
           if (resp.status !== 200) {
             return reject(`Error retrieving the IMDb rating at url : '${url}'`);
@@ -276,7 +281,7 @@ function storageAvailable(type) {
           };
 
           window.titlesRatingCache[id] = data;
-          localStorage.setObject('TitlesRatingCache', titlesRatingCache);
+          localStorage.setObject('TitlesRatingCache', window.titlesRatingCache);
 
           return resolve(data);
         }
