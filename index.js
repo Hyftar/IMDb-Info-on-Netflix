@@ -213,8 +213,10 @@ function storageAvailable(type) {
             doc.innerHTML = resp.responseText;
 
             const link =
-              Array.from(doc.querySelectorAll('.result_text > a'))
-                .find((el) => !el.parentNode.textContent.trim().match(/\((?:TV Episode|Short|Video Game|Video)\)/));
+              Array.from(
+                doc.querySelectorAll('.find-result-item:first-child a'))
+                  .find((el) => !el.parentNode.textContent.trim().match(/\((?:TV Episode|Short|Video Game|Video)\)/)
+              );
 
             const id = link?.href.match(/title\/(tt\d+)/)[1];
 
