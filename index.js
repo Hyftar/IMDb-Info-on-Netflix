@@ -1,6 +1,5 @@
 // ==UserScript==
 // @name         IMDb Info On Netflix
-// @license      GPLv3
 // @description  Detailed IMDB info to Netflix titles
 // @namespace    http://tampermonkey.net/
 // @version      1.4.2
